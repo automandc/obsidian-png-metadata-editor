@@ -4,6 +4,10 @@ on:
     push:
         tags:
             - '*'
+    # "Run workflow" in the Actions tab releases the version in manifest.json from
+    # main. The draft's tag is created when the draft is published, so no local
+    # git is needed.
+    workflow_dispatch:
 
 jobs:
     build:
@@ -24,26 +28,52 @@ jobs:
             # Obsidian downloads the release whose tag equals manifest.json's version,
             # so refuse to release a tag that doesn't match.
             - name: Check tag matches manifest version
+              id: version
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  tag="${GITHUB_REF#refs/tags/}"
                   version=$(node -p "require('./manifest.json').version")
+                  if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+                    tag="$GITHUB_REF_NAME"
+                    # Publishing a draft made by "Run workflow" creates its tag and
+                    # lands here; that release already has its files.
+                    if gh release view "$tag" >/dev/null 2>&1; then
+                      echo "::notice::Release $tag already exists; nothing to do."
+                      echo "skip=true" >> "$GITHUB_OUTPUT"
+                      exit 0
+                    fi
+                  else
+                    if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+                      echo "::error::Run this workflow on main."
+                      exit 1
+                    fi
+                    tag="$version"
+                    if gh release view "$tag" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+                      echo "::error::$tag is already released or drafted. Bump the version in manifest.json first (see docs/RELEASING.md)."
+                      exit 1
+                    fi
+                  fi
                   if [ "$tag" != "$version" ]; then
                     echo "::error::Tag $tag does not match manifest.json version $version"
                     exit 1
                   fi
                   node -e "const v=require('./versions.json'); if(!v['$version']){console.error('versions.json has no entry for $version'); process.exit(1)}"
+                  echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
             - name: Build plugin
+              if: steps.version.outputs.skip != 'true'
               run: |
                   npm ci
                   npm run build
 
             - name: Check for optional styles
+              if: steps.version.outputs.skip != 'true'
               id: styles
               run: |
                   [ -f styles.css ] && echo "exists=true" >> "$GITHUB_OUTPUT" || echo "exists=false" >> "$GITHUB_OUTPUT"
 
             - name: Attest build provenance
+              if: steps.version.outputs.skip != 'true'
               uses: actions/attest@v4
               with:
                   subject-path: |
@@ -51,13 +81,14 @@ jobs:
                       ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
 
             - name: Create release
+              if: steps.version.outputs.skip != 'true'
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAG: ${{ steps.version.outputs.tag }}
               run: |
-                  tag="${GITHUB_REF#refs/tags/}"
-
-                  gh release create "$tag" \
-                    --title="$tag" \
+                  gh release create "$TAG" \
+                    --target="$GITHUB_SHA" \
+                    --title="$TAG" \
                     --draft \
                     --generate-notes \
                     main.js manifest.json ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
