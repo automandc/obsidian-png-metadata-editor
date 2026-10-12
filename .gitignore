@@ -147,3 +147,12 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Obsidian plugin
+main.js
+*.map
+data.json
+.vscode
+.idea
+*.iml
+.DS_Store
