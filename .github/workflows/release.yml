@@ -21,6 +21,18 @@ jobs:
                   node-version: 24
                   cache: 'npm'
 
+            # Obsidian downloads the release whose tag equals manifest.json's version,
+            # so refuse to release a tag that doesn't match.
+            - name: Check tag matches manifest version
+              run: |
+                  tag="${GITHUB_REF#refs/tags/}"
+                  version=$(node -p "require('./manifest.json').version")
+                  if [ "$tag" != "$version" ]; then
+                    echo "::error::Tag $tag does not match manifest.json version $version"
+                    exit 1
+                  fi
+                  node -e "const v=require('./versions.json'); if(!v['$version']){console.error('versions.json has no entry for $version'); process.exit(1)}"
+
             - name: Build plugin
               run: |
                   npm ci
@@ -47,4 +59,5 @@ jobs:
                   gh release create "$tag" \
                     --title="$tag" \
                     --draft \
+                    --generate-notes \
                     main.js manifest.json ${{ steps.styles.outputs.exists == 'true' && 'styles.css' || '' }}
