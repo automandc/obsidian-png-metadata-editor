@@ -156,3 +156,7 @@ data.json
 .idea
 *.iml
 .DS_Store
+
+# Test output and downloaded Obsidian builds
+test/output/
+.obsidian-cache/

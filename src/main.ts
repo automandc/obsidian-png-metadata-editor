@@ -24,7 +24,7 @@ export default class PngMetadataPlugin extends Plugin {
 
 		this.registerView(
 			VIEW_TYPE_PNG_METADATA,
-			(leaf: WorkspaceLeaf) => new PngMetadataView(leaf),
+			(leaf: WorkspaceLeaf) => new PngMetadataView(leaf, this),
 		);
 
 		this.addCommand({

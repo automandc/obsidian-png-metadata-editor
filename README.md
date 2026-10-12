@@ -4,15 +4,13 @@ An Obsidian plugin to view and edit the metadata stored inside PNG files, with a
 
 ## Status
 
-Early scaffold. Today the plugin:
+Early development. Today the plugin:
 
-- Opens `.png` files from the file explorer in its own view, showing the image (can be turned off in settings).
-- Adds "Open in metadata view" to the file menu and a command palette entry, for opening a PNG on demand.
+- Opens `.png` files from the file explorer in its own view, with a preview and the image's basic properties (can be turned off in settings).
+- Lists every text field in the file (`tEXt`, `zTXt` and `iTXt` chunks) and lets you edit, add, delete and retype them, then save. Before a file is first changed, the original is kept next to it as `NAME.png.bak`.
+- Adds "Open in metadata view" to the file menu and the command palette, for opening a PNG on demand.
 
-Planned next:
-
-1. Generic PNG metadata view: list, edit, add and delete text chunks (`tEXt`, `zTXt`, `iTXt`), with a backup before saving.
-2. SillyTavern mode: a form for character card fields stored in the `chara` / `ccv3` chunks.
+Planned next: a SillyTavern mode with a form for the character card fields stored in the `chara` / `ccv3` chunks.
 
 ## Development
 
@@ -21,7 +19,11 @@ npm install
 npm run dev     # rebuilds main.js on change
 npm run build   # type-check and production build
 npm run lint
+npm run test:unit   # PNG module tests (needs Python 3 + Pillow)
+npm run test:e2e    # UI tests in a real Obsidian
 ```
+
+See [docs/TESTING.md](docs/TESTING.md) for how the tests work and the manual checklist.
 
 To try it in a vault, copy `main.js`, `manifest.json` and `styles.css` into `<vault>/.obsidian/plugins/png-metadata-editor/`, then enable the plugin under Settings → Community plugins.
 

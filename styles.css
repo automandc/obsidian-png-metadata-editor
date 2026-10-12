@@ -5,19 +5,128 @@
 	padding: var(--size-4-4);
 }
 
-.png-metadata-preview {
+.png-metadata-top {
 	display: flex;
-	justify-content: center;
+	flex-wrap: wrap;
+	gap: var(--size-4-4);
+	align-items: flex-start;
 }
 
 .png-metadata-preview img {
-	max-width: 100%;
-	max-height: 320px;
+	display: block;
+	max-width: min(100%, 320px);
+	max-height: 240px;
 	object-fit: contain;
 	border-radius: var(--radius-s);
 	border: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
 }
 
-.png-metadata-placeholder {
+.png-metadata-info h3 {
+	margin-top: 0;
+	word-break: break-all;
+}
+
+.png-metadata-info dl {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: var(--size-2-1) var(--size-4-3);
+	margin: 0;
+}
+
+.png-metadata-info dt {
 	color: var(--text-muted);
+}
+
+.png-metadata-info dd {
+	margin: 0;
+}
+
+.png-metadata-section-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--size-4-2);
+}
+
+.png-metadata-section-header h4 {
+	margin: 0;
+}
+
+.png-metadata-toolbar {
+	display: flex;
+	gap: var(--size-4-2);
+}
+
+.png-metadata-status {
+	min-height: 1.5em;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.png-metadata-entries {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+}
+
+.png-metadata-entry {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+	padding: var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.png-metadata-entry.is-invalid {
+	border-color: var(--text-error);
+}
+
+.png-metadata-entry-head {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: center;
+}
+
+.png-metadata-keyword {
+	flex: 1;
+	min-width: 0;
+	font-weight: var(--font-semibold);
+}
+
+.png-metadata-value {
+	width: 100%;
+	max-height: 320px;
+	resize: vertical;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	word-break: break-all;
+}
+
+.png-metadata-error {
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+}
+
+.png-metadata-empty {
+	color: var(--text-muted);
+}
+
+.png-metadata-chunks summary {
+	cursor: pointer;
+	color: var(--text-muted);
+}
+
+.png-metadata-chunks table {
+	margin-top: var(--size-4-2);
+	border-collapse: collapse;
+}
+
+.png-metadata-chunks td,
+.png-metadata-chunks th {
+	padding: var(--size-2-1) var(--size-4-3);
+	text-align: left;
+	font-family: var(--font-monospace);
 }
