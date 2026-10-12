@@ -56,6 +56,16 @@ export default class PngMetadataPlugin extends Plugin {
 			}),
 		);
 
+		// A tab already showing an image keeps its built-in viewer when another PNG
+		// is opened in it, because that viewer accepts .png too.
+		this.registerEvent(
+			this.app.workspace.on('file-open', (file) => {
+				if (this.ownsPngExtension && file?.extension.toLowerCase() === 'png') {
+					this.switchPngLeaves(CORE_IMAGE_VIEW, VIEW_TYPE_PNG_METADATA);
+				}
+			}),
+		);
+
 		this.addSettingTab(new PngMetadataSettingTab(this.app, this));
 
 		this.app.workspace.onLayoutReady(() => this.applyPngHandler());
@@ -78,8 +88,25 @@ export default class PngMetadataPlugin extends Plugin {
 	applyPngHandler() {
 		if (this.settings.openPngByDefault) {
 			this.claimPngExtension();
-		} else {
+			this.switchPngLeaves(CORE_IMAGE_VIEW, VIEW_TYPE_PNG_METADATA);
+		} else if (this.ownsPngExtension) {
 			this.releasePngExtension();
+			this.switchPngLeaves(VIEW_TYPE_PNG_METADATA, CORE_IMAGE_VIEW);
+		}
+	}
+
+	/**
+	 * Move tabs showing a PNG from one view to the other. Opening a PNG in a tab
+	 * that is already showing one keeps that tab's view, so without this the
+	 * handler only applies to tabs opened after the plugin was enabled.
+	 */
+	private switchPngLeaves(fromType: string, toType: string) {
+		for (const leaf of this.app.workspace.getLeavesOfType(fromType)) {
+			const viewState = leaf.getViewState();
+			const file = viewState.state?.file;
+			if (typeof file === 'string' && file.toLowerCase().endsWith('.png')) {
+				void leaf.setViewState({ ...viewState, type: toType });
+			}
 		}
 	}
 
