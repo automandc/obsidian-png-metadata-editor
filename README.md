@@ -10,7 +10,9 @@ Early development. Today the plugin:
 - Lists every text field in the file (`tEXt`, `zTXt` and `iTXt` chunks) and lets you edit, add, delete and retype them, then save. Before a file is first changed, the original is kept next to it as `NAME.png.bak`.
 - Adds "Open in metadata view" to the file menu and the command palette, for opening a PNG on demand.
 
-Planned next: a SillyTavern mode with a form for the character card fields stored in the `chara` / `ccv3` chunks.
+- Shows SillyTavern character cards as a form (name, description, personality, scenario, greetings, prompts, tags and so on), with a toggle back to the raw metadata. V1, V2 (`chara`) and V3 (`ccv3`) cards are supported; when a file has both chunks, edits are saved to both. Lorebooks and other data the form doesn't show are kept unchanged.
+
+Planned next: lorebook editing, and polish such as more settings.
 
 ## Development
 
