@@ -215,3 +215,42 @@
 .png-card-add-greeting {
 	align-self: flex-start;
 }
+
+.png-metadata-panel summary {
+	cursor: pointer;
+	font-weight: var(--font-semibold);
+}
+
+.png-metadata-panel-note {
+	margin: var(--size-4-2) 0;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.png-metadata-panel table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.png-metadata-panel th,
+.png-metadata-panel td {
+	padding: var(--size-2-1) var(--size-4-2);
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.png-metadata-panel th[scope='row'] {
+	width: 40%;
+	color: var(--text-muted);
+	font-weight: var(--font-normal);
+}
+
+.png-metadata-panel td {
+	word-break: break-word;
+}
+
+.png-exif-group th {
+	padding-top: var(--size-4-3);
+	font-weight: var(--font-semibold);
+}

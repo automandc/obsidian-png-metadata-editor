@@ -12,6 +12,10 @@ code that rewrites files and so can do real damage:
   image data and chunk order are untouched.
 - Broken files (wrong signature, truncated, bad checksum, no IEND) are rejected.
 - Keyword and Latin-1 validation.
+- Standard metadata (`src/png/exif.ts`, `xmp.ts`, `info.ts`): EXIF from
+  big- and little-endian `eXIf` chunks and from ImageMagick raw profiles is
+  checked tag by tag against what Pillow reads (`test/fixtures/photo.exif.json`);
+  XMP and the PNG info chunks are checked against known values.
 - SillyTavern cards (`src/card/`): reading V1, V2 and V3 cards, writing edits to
   every card chunk, and keeping lorebooks, extensions and unknown fields.
 

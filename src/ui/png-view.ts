@@ -2,6 +2,10 @@ import { FileView, Notice, setIcon, TFile, WorkspaceLeaf } from 'obsidian';
 import { Card, hasCard, readCard, writeCardToEntries } from '../card/card';
 import type PngMetadataPlugin from '../main';
 import { encodePng, parsePng, PngChunk, PngHeader, readHeader } from '../png/chunks';
+import { ExifData, findExif } from '../png/exif';
+import { InfoRow, readInfoRows } from '../png/info';
+import { parseXmp, XMP_KEYWORD, XmpProperty } from '../png/xmp';
+import { renderExifPanel, renderPanelError, renderXmpPanel } from './metadata-panels';
 import { renderCardForm } from './card-form';
 import {
 	applyTextEntries,
@@ -37,6 +41,11 @@ export class PngMetadataView extends FileView {
 	private chunks: PngChunk[] = [];
 	private entries: EditableTextEntry[] = [];
 	private header: PngHeader | null = null;
+	private infoRows: InfoRow[] = [];
+	private exif: ExifData | null = null;
+	private exifError: string | null = null;
+	private xmp: XmpProperty[] | null = null;
+	private xmpError: string | null = null;
 	private fileSize = 0;
 	private loadError: string | null = null;
 	/** True when entries were added, removed or edited since the last load or save. */
@@ -104,6 +113,7 @@ export class PngMetadataView extends FileView {
 			this.header = readHeader(this.chunks);
 			this.entries = readTextEntries(this.chunks);
 			this.loadError = null;
+			this.readStandardMetadata();
 		} catch (e) {
 			this.chunks = [];
 			this.header = null;
@@ -115,6 +125,28 @@ export class PngMetadataView extends FileView {
 			this.mode = hasCard(this.entries) ? 'card' : 'raw';
 		}
 		this.render(file);
+	}
+
+	/** Decode the read-only metadata from the file as loaded. Problems are shown, not thrown. */
+	private readStandardMetadata() {
+		this.infoRows = readInfoRows(this.chunks);
+		this.exif = null;
+		this.exifError = null;
+		try {
+			this.exif = findExif(this.chunks, this.entries);
+		} catch (e) {
+			this.exifError = e instanceof Error ? e.message : String(e);
+		}
+		this.xmp = null;
+		this.xmpError = null;
+		const xmp = this.entries.find((e) => e.keyword === XMP_KEYWORD);
+		if (xmp) {
+			try {
+				this.xmp = parseXmp(xmp.text);
+			} catch (e) {
+				this.xmpError = e instanceof Error ? e.message : String(e);
+			}
+		}
 	}
 
 	private render(file: TFile) {
@@ -136,6 +168,11 @@ export class PngMetadataView extends FileView {
 			});
 			return;
 		}
+
+		if (this.exif) renderExifPanel(contentEl, this.exif);
+		if (this.exifError) renderPanelError(contentEl, 'EXIF data', this.exifError);
+		if (this.xmp) renderXmpPanel(contentEl, this.xmp);
+		if (this.xmpError) renderPanelError(contentEl, 'XMP data', this.xmpError);
 
 		const section = contentEl.createDiv({ cls: 'png-metadata-section' });
 		const heading = section.createDiv({ cls: 'png-metadata-section-header' });
@@ -221,6 +258,7 @@ export class PngMetadataView extends FileView {
 				['Interlaced', interlaced ? 'Yes' : 'No'],
 			);
 		}
+		for (const info of this.infoRows) rows.push([info.label, info.value]);
 		const dl = el.createEl('dl');
 		for (const [label, value] of rows) {
 			dl.createEl('dt', { text: label });

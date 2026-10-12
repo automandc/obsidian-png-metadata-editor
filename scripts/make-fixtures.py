@@ -6,9 +6,12 @@ the plugin against files it did not write. Run: python3 scripts/make-fixtures.py
 import base64
 import json
 import shutil
+import struct
+import zlib
 from pathlib import Path
 
-from PIL import Image, PngImagePlugin
+from PIL import ExifTags, Image, ImageCms, PngImagePlugin
+from PIL.TiffImagePlugin import IFDRational as R
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "test" / "fixtures"
@@ -28,6 +31,93 @@ def b64json(obj):
 
 def save(name, info=None):
     gradient().save(OUT / name, pnginfo=info)
+
+
+def insert_chunks(path, chunks, before="IDAT"):
+    """Add raw chunks to a PNG just before the first `before` chunk (Pillow can't write these)."""
+    data = path.read_bytes()
+    pos = 8
+    while pos < len(data):
+        (length,) = struct.unpack(">I", data[pos : pos + 4])
+        if data[pos + 4 : pos + 8] == before.encode():
+            break
+        pos += 12 + length
+    raw = b""
+    for ctype, body in chunks:
+        ctype = ctype.encode()
+        raw += struct.pack(">I", len(body)) + ctype + body + struct.pack(">I", zlib.crc32(ctype + body))
+    path.write_bytes(data[:pos] + raw + data[pos:])
+
+
+def camera_exif(endian=">"):
+    exif = Image.Exif()
+    exif.endian = endian
+    exif[ExifTags.Base.Make] = "Canon"
+    exif[ExifTags.Base.Model] = "EOS R5"
+    exif[ExifTags.Base.Software] = "png-metadata-editor tests"
+    exif[ExifTags.Base.DateTime] = "2026:10:11 14:30:00"
+    exif[ExifTags.Base.Orientation] = 1
+    exif[ExifTags.Base.Artist] = "Test Photographer"
+    exif[ExifTags.Base.Copyright] = "CC0"
+    exif[ExifTags.Base.ImageDescription] = "A gradient pretending to be a photo"
+    sub = exif.get_ifd(ExifTags.IFD.Exif)
+    sub[ExifTags.Base.DateTimeOriginal] = "2026:10:11 14:29:59"
+    sub[ExifTags.Base.ExposureTime] = R(1, 250)
+    sub[ExifTags.Base.FNumber] = R(28, 10)
+    sub[ExifTags.Base.ISOSpeedRatings] = 200
+    sub[ExifTags.Base.FocalLength] = R(50, 1)
+    gps = exif.get_ifd(ExifTags.IFD.GPSInfo)
+    gps[ExifTags.GPS.GPSLatitudeRef] = "N"
+    gps[ExifTags.GPS.GPSLatitude] = (R(40, 1), R(42, 1), R(4608, 100))
+    gps[ExifTags.GPS.GPSLongitudeRef] = "W"
+    gps[ExifTags.GPS.GPSLongitude] = (R(74, 1), R(0, 1), R(2160, 100))
+    return exif
+
+
+XMP = """<?xpacket begin="\ufeff" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+    xmp:CreatorTool="png-metadata-editor tests"
+    xmp:CreateDate="2026-10-11T14:29:59">
+   <dc:title><rdf:Alt><rdf:li xml:lang="x-default">Gradient study</rdf:li></rdf:Alt></dc:title>
+   <dc:creator><rdf:Seq><rdf:li>Test Photographer</rdf:li></rdf:Seq></dc:creator>
+   <dc:subject><rdf:Bag><rdf:li>test</rdf:li><rdf:li>gradient</rdf:li></rdf:Bag></dc:subject>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>"""
+
+
+def imagemagick_raw_profile(payload):
+    """ImageMagick's "Raw profile type exif" text: a header, the length, then hex lines."""
+    hexed = payload.hex()
+    lines = [hexed[i : i + 72] for i in range(0, len(hexed), 72)]
+    return "\nexif\n" + f"{len(payload):8d}\n" + "\n".join(lines) + "\n"
+
+
+def write_exif_reference(png, out):
+    with Image.open(png) as img:
+        exif = img.getexif()
+        groups = {
+            "Image": dict(exif),
+            "Photo": dict(exif.get_ifd(ExifTags.IFD.Exif)),
+            "GPS": dict(exif.get_ifd(ExifTags.IFD.GPSInfo)),
+        }
+    ref = {}
+    for group, tags in groups.items():
+        names = ExifTags.GPSTAGS if group == "GPS" else ExifTags.TAGS
+        for tag, value in tags.items():
+            if tag in (ExifTags.IFD.Exif, ExifTags.IFD.GPSInfo):
+                continue
+            if isinstance(value, tuple):
+                value = [float(v) for v in value]
+            elif not isinstance(value, (str, int)):
+                value = float(value)
+            ref[f"{group}:{names[tag]}"] = value
+    out.write_text(json.dumps(ref, indent=2, sort_keys=True) + "\n")
 
 
 def main():
@@ -101,6 +191,30 @@ def main():
     info = PngImagePlugin.PngInfo()
     info.add_text("chara", "this is not a card")
     save("card-broken.png", info)
+
+    # A "photo" with the standard metadata a camera or editor would write.
+    info = PngImagePlugin.PngInfo()
+    info.add_itxt("XML:com.adobe.xmp", XMP)
+    icc = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    gradient().save(OUT / "photo.png", pnginfo=info, exif=camera_exif(), dpi=(300, 300), icc_profile=icc)
+    insert_chunks(
+        OUT / "photo.png",
+        [
+            ("tIME", struct.pack(">HBBBBB", 2026, 10, 11, 14, 30, 0)),
+            ("gAMA", struct.pack(">I", 45455)),
+        ],
+    )
+
+    # Little-endian EXIF, as some cameras and tools write it.
+    gradient().save(OUT / "photo-le.png", exif=camera_exif("<"))
+
+    # EXIF stored the ImageMagick way, as hex in a "Raw profile type exif" text chunk.
+    info = PngImagePlugin.PngInfo()
+    info.add_text("Raw profile type exif", imagemagick_raw_profile(camera_exif().tobytes()), zip=True)
+    save("imagemagick-exif.png", info)
+
+    # What Pillow reads back from photo.png, so the unit tests can compare our EXIF decoder with it.
+    write_exif_reference(OUT / "photo.png", OUT / "photo.exif.json")
 
     VAULT_IMAGES.mkdir(parents=True, exist_ok=True)
     for png in OUT.glob("*.png"):
