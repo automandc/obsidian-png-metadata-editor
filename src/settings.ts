@@ -3,10 +3,12 @@ import PngMetadataPlugin from './main';
 
 export interface PngMetadataSettings {
 	openPngByDefault: boolean;
+	backupOnSave: boolean;
 }
 
 export const DEFAULT_SETTINGS: PngMetadataSettings = {
 	openPngByDefault: true,
+	backupOnSave: true,
 };
 
 export class PngMetadataSettingTab extends PluginSettingTab {
@@ -34,6 +36,20 @@ export class PngMetadataSettingTab extends PluginSettingTab {
 						this.plugin.settings.openPngByDefault = value;
 						await this.plugin.saveSettings();
 						this.plugin.applyPngHandler();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName('Back up before first save')
+			.setDesc(
+				'Before a PNG is changed for the first time, keep a copy of the original next to it with a .bak extension. Later saves keep that original copy.',
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.backupOnSave)
+					.onChange(async (value) => {
+						this.plugin.settings.backupOnSave = value;
+						await this.plugin.saveSettings();
 					}),
 			);
 	}
