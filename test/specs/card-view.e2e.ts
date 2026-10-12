@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { before, beforeEach, describe, it } from 'mocha';
 import { obsidianPage } from 'wdio-obsidian-service';
+import { waitForSave } from './helpers';
 import { decodeCardText } from '../../src/card/card';
 import { parsePng } from '../../src/png/chunks';
 import { readTextEntries } from '../../src/png/text';
@@ -53,6 +54,7 @@ describe('SillyTavern card mode', function () {
 	it('opens a card in the character card form', async function () {
 		await openFile('images/sillytavern-card.png');
 		await expect($('.png-metadata-mode button[data-mode="card"]')).toHaveElementClass('is-active');
+		await expect($('.png-metadata-title')).toHaveText('sillytavern-card');
 		await expect(field('name')).toHaveValue('Test Character');
 		await expect(field('first_mes')).toHaveValue('Hello! I only exist in test fixtures.');
 		await expect($$('.png-card-greeting')).toBeElementsArrayOfSize(2);
@@ -73,7 +75,7 @@ describe('SillyTavern card mode', function () {
 		const greetings = await $$('.png-card-greeting textarea').getElements();
 		await greetings[greetings.length - 1]!.setValue('A third greeting.');
 		await $('.png-metadata-save').click();
-		await expect($('.png-metadata-save')).toBeDisabled();
+		await waitForSave();
 
 		const cards = readCards('images/sillytavern-card.png');
 		for (const keyword of ['chara', 'ccv3']) {
@@ -94,7 +96,7 @@ describe('SillyTavern card mode', function () {
 		await remove.click();
 		await expect($$('.png-card-greeting')).toBeElementsArrayOfSize(1);
 		await $('.png-metadata-save').click();
-		await expect($('.png-metadata-save')).toBeDisabled();
+		await waitForSave();
 		expect(readCards('images/sillytavern-card.png').chara!.data!.alternate_greetings).toEqual([
 			'Greetings, traveller.',
 		]);
@@ -106,7 +108,7 @@ describe('SillyTavern card mode', function () {
 		await expect($('.png-card-info')).toHaveText(expect.stringContaining('lorebook (2 entries)'));
 		await field('personality').setValue('Edited personality');
 		await $('.png-metadata-save').click();
-		await expect($('.png-metadata-save')).toBeDisabled();
+		await waitForSave();
 
 		const cards = readCards('images/card-v2-only.png');
 		expect(Object.keys(cards)).toEqual(['chara']);
@@ -120,6 +122,7 @@ describe('SillyTavern card mode', function () {
 		await field('name').setValue('Unsaved name');
 		await $('.png-metadata-mode button[data-mode="raw"]').click();
 		await expect($('.png-metadata-add')).toExist();
+		await expect($('.png-metadata-title')).toHaveText('sillytavern-card.png');
 		await expect($('.png-metadata-status')).toHaveText('Unsaved changes');
 		await $('.png-metadata-mode button[data-mode="card"]').click();
 		await expect(field('name')).toHaveValue('Unsaved name');

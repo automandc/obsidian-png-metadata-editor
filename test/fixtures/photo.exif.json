@@ -1,0 +1,27 @@
+{
+  "GPS:GPSLatitude": [
+    40.0,
+    42.0,
+    46.08
+  ],
+  "GPS:GPSLatitudeRef": "N",
+  "GPS:GPSLongitude": [
+    74.0,
+    0.0,
+    21.6
+  ],
+  "GPS:GPSLongitudeRef": "W",
+  "Image:Artist": "Test Photographer",
+  "Image:Copyright": "CC0",
+  "Image:DateTime": "2026:10:11 14:30:00",
+  "Image:ImageDescription": "A gradient pretending to be a photo",
+  "Image:Make": "Canon",
+  "Image:Model": "EOS R5",
+  "Image:Orientation": 1,
+  "Image:Software": "png-metadata-editor tests",
+  "Photo:DateTimeOriginal": "2026:10:11 14:29:59",
+  "Photo:ExposureTime": 0.004,
+  "Photo:FNumber": 2.8,
+  "Photo:FocalLength": 50.0,
+  "Photo:ISOSpeedRatings": 200
+}
