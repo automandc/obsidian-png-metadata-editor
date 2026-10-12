@@ -1,7 +1,7 @@
 {
 	"id": "png-metadata-editor",
 	"name": "PNG Metadata Editor",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "1.5.3",
 	"description": "View and edit PNG metadata, with a dedicated mode for SillyTavern character cards.",
 	"author": "automandc",

@@ -158,4 +158,28 @@ describe('PNG metadata view', function () {
 		await browser.executeObsidianCommand(`${PLUGIN_ID}:open-active-png`);
 		await browser.waitUntil(async () => (await activeViewType()) === VIEW_TYPE);
 	});
+
+	it('switches open PNG tabs when the setting changes', async function () {
+		await openFile('images/plain.png');
+		expect(await activeViewType()).toEqual(VIEW_TYPE);
+
+		await setOpenPngByDefault(false);
+		await browser.waitUntil(async () => (await activeViewType()) === 'image');
+
+		await setOpenPngByDefault(true);
+		await browser.waitUntil(async () => (await activeViewType()) === VIEW_TYPE);
+	});
+
+	it('opens a PNG in the metadata view from a tab showing the image viewer', async function () {
+		await browser.executeObsidian(async ({ app }) => {
+			await app.workspace.getLeaf(false).setViewState({
+				type: 'image',
+				state: { file: 'images/plain.png' },
+				active: true,
+			});
+		});
+		await openFile('images/text-chunks.png');
+		await browser.waitUntil(async () => (await activeViewType()) === VIEW_TYPE);
+		await expect($('.png-metadata-keyword')).toExist();
+	});
 });

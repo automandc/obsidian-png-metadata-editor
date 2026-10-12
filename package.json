@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-png-metadata-editor",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Obsidian plugin to view and edit PNG metadata, with a SillyTavern character card mode",
 	"main": "main.js",
 	"type": "module",
