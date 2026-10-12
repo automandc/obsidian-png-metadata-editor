@@ -69,6 +69,39 @@ def main():
     info.add_text("ccv3", b64json(v3))
     save("sillytavern-card.png", info)
 
+    # V2 only (no ccv3), with a lorebook and extension data the editor must keep.
+    v2_only = {
+        "spec": "chara_card_v2",
+        "spec_version": "2.0",
+        "data": {
+            **card_data,
+            "name": "Zoë 🌸",
+            "extensions": {"talkativeness": "0.5", "custom_tool": {"keep": True}},
+            "character_book": {
+                "name": "Test lore",
+                "entries": [
+                    {"keys": ["vault"], "content": "A vault is a folder of notes.", "id": 0},
+                    {"keys": ["plugin"], "content": "Plugins extend Obsidian.", "id": 1},
+                ],
+            },
+        },
+    }
+    info = PngImagePlugin.PngInfo()
+    info.add_text("chara", b64json(v2_only))
+    save("card-v2-only.png", info)
+
+    # Old V1 format: fields at the top level, no spec.
+    v1 = {k: card_data[k] for k in ("name", "description", "personality", "scenario", "first_mes", "mes_example")}
+    v1["name"] = "Old Format Character"
+    info = PngImagePlugin.PngInfo()
+    info.add_text("chara", b64json(v1))
+    save("card-v1.png", info)
+
+    # A chara field that is not valid base64 JSON.
+    info = PngImagePlugin.PngInfo()
+    info.add_text("chara", "this is not a card")
+    save("card-broken.png", info)
+
     VAULT_IMAGES.mkdir(parents=True, exist_ok=True)
     for png in OUT.glob("*.png"):
         shutil.copy(png, VAULT_IMAGES / png.name)

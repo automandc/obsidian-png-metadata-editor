@@ -1,6 +1,8 @@
 import { FileView, Notice, setIcon, TFile, WorkspaceLeaf } from 'obsidian';
+import { Card, hasCard, readCard, writeCardToEntries } from '../card/card';
 import type PngMetadataPlugin from '../main';
 import { encodePng, parsePng, PngChunk, PngHeader, readHeader } from '../png/chunks';
+import { renderCardForm } from './card-form';
 import {
 	applyTextEntries,
 	EditableTextEntry,
@@ -12,6 +14,9 @@ import {
 } from '../png/text';
 
 export const VIEW_TYPE_PNG_METADATA = 'png-metadata-view';
+
+/** "card" shows the SillyTavern form; "raw" lists every text chunk. */
+type ViewMode = 'card' | 'raw';
 
 const COLOR_TYPES: Record<number, string> = {
 	0: 'Grayscale',
@@ -37,6 +42,7 @@ export class PngMetadataView extends FileView {
 	/** True when entries were added, removed or edited since the last load or save. */
 	private dirty = false;
 	private saving = false;
+	private mode: ViewMode = 'raw';
 
 	private entriesEl!: HTMLElement;
 	private saveButton!: HTMLButtonElement;
@@ -71,14 +77,14 @@ export class PngMetadataView extends FileView {
 			this.app.vault.on('modify', (file) => {
 				// Pick up changes made outside this view, unless there are unsaved edits here.
 				if (this.file && file.path === this.file.path && !this.saving && !this.dirty) {
-					void this.loadFromDisk(this.file);
+					void this.loadFromDisk(this.file, true);
 				}
 			}),
 		);
 	}
 
 	async onLoadFile(file: TFile): Promise<void> {
-		await this.loadFromDisk(file);
+		await this.loadFromDisk(file, false);
 	}
 
 	async onUnloadFile(file: TFile): Promise<void> {
@@ -89,7 +95,8 @@ export class PngMetadataView extends FileView {
 		this.contentEl.empty();
 	}
 
-	private async loadFromDisk(file: TFile) {
+	/** Read the file and re-render. `keepMode` keeps the Card/Raw choice, for reloads of the same file. */
+	private async loadFromDisk(file: TFile, keepMode: boolean) {
 		const bytes = new Uint8Array(await this.app.vault.readBinary(file));
 		this.fileSize = bytes.length;
 		try {
@@ -104,6 +111,9 @@ export class PngMetadataView extends FileView {
 			this.loadError = e instanceof Error ? e.message : String(e);
 		}
 		this.dirty = false;
+		if (!keepMode || !hasCard(this.entries)) {
+			this.mode = hasCard(this.entries) ? 'card' : 'raw';
+		}
 		this.render(file);
 	}
 
@@ -129,21 +139,75 @@ export class PngMetadataView extends FileView {
 
 		const section = contentEl.createDiv({ cls: 'png-metadata-section' });
 		const heading = section.createDiv({ cls: 'png-metadata-section-header' });
-		heading.createEl('h4', { text: 'Text metadata' });
+		if (hasCard(this.entries)) {
+			this.renderModeSwitch(heading, file);
+		} else {
+			heading.createEl('h4', { text: 'Text metadata' });
+		}
 
 		const toolbar = heading.createDiv({ cls: 'png-metadata-toolbar' });
-		const addButton = toolbar.createEl('button', { cls: 'png-metadata-add', text: 'Add field' });
-		addButton.addEventListener('click', () => this.addEntry());
+		if (this.mode === 'raw') {
+			const addButton = toolbar.createEl('button', { cls: 'png-metadata-add', text: 'Add field' });
+			addButton.addEventListener('click', () => this.addEntry());
+		}
 		this.revertButton = toolbar.createEl('button', { cls: 'png-metadata-revert', text: 'Revert' });
-		this.revertButton.addEventListener('click', () => void this.loadFromDisk(file));
+		this.revertButton.addEventListener('click', () => void this.loadFromDisk(file, true));
 		this.saveButton = toolbar.createEl('button', { cls: 'png-metadata-save mod-cta', text: 'Save' });
 		this.saveButton.addEventListener('click', () => void this.save());
 
 		this.statusEl = section.createDiv({ cls: 'png-metadata-status' });
 		this.entriesEl = section.createDiv({ cls: 'png-metadata-entries' });
-		this.renderEntries();
+		if (this.mode === 'card') {
+			this.renderCard();
+		} else {
+			this.renderEntries();
+		}
 
 		this.renderOtherChunks(contentEl);
+	}
+
+	private renderModeSwitch(parent: HTMLElement, file: TFile) {
+		const modes: [ViewMode, string][] = [
+			['card', 'Character card'],
+			['raw', 'Raw metadata'],
+		];
+		const group = parent.createDiv({ cls: 'png-metadata-mode', attr: { role: 'tablist' } });
+		for (const [mode, label] of modes) {
+			const button = group.createEl('button', {
+				text: label,
+				attr: { 'data-mode': mode, role: 'tab', 'aria-selected': String(this.mode === mode) },
+			});
+			button.toggleClass('is-active', this.mode === mode);
+			button.addEventListener('click', () => {
+				if (this.mode === mode) return;
+				// Both modes edit the same entries, so unsaved edits carry over.
+				this.mode = mode;
+				this.render(file);
+				this.updateControls();
+			});
+		}
+	}
+
+	private renderCard() {
+		let card: Card | null;
+		try {
+			card = readCard(this.entries);
+		} catch (e) {
+			this.entriesEl.createDiv({
+				cls: 'png-metadata-error png-card-error',
+				text: `This character card can't be read: ${e instanceof Error ? e.message : String(e)}. Switch to Raw metadata to see or fix the data.`,
+			});
+			this.updateControls();
+			return;
+		}
+		if (!card) return;
+		const loaded = card;
+		renderCardForm(this.entriesEl, loaded, (fields) => {
+			writeCardToEntries(this.entries, loaded, fields);
+			this.dirty = true;
+			this.updateControls();
+		});
+		this.updateControls();
 	}
 
 	private renderInfo(el: HTMLElement, file: TFile) {
@@ -305,7 +369,7 @@ export class PngMetadataView extends FileView {
 		} finally {
 			this.saving = false;
 		}
-		await this.loadFromDisk(file);
+		await this.loadFromDisk(file, true);
 	}
 
 	/** Keep a copy of the file as it was before the first save, next to it as NAME.png.bak. */

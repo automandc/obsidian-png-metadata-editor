@@ -130,3 +130,88 @@
 	text-align: left;
 	font-family: var(--font-monospace);
 }
+
+.png-metadata-mode {
+	display: inline-flex;
+	padding: 2px;
+	gap: 2px;
+	border-radius: var(--radius-m);
+	background: var(--background-modifier-hover);
+}
+
+.png-metadata-mode button {
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+}
+
+.png-metadata-mode button.is-active {
+	background: var(--background-primary);
+	color: var(--text-normal);
+	box-shadow: var(--shadow-s);
+}
+
+.png-card-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-4);
+}
+
+.png-card-info {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.png-card-group {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-3);
+	padding: var(--size-4-3);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+}
+
+.png-card-group h5 {
+	margin: 0;
+}
+
+.png-card-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-2);
+}
+
+.png-card-field label {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.png-card-field input,
+.png-card-field textarea {
+	width: 100%;
+}
+
+.png-card-field textarea {
+	resize: vertical;
+	max-height: 480px;
+}
+
+.png-card-greetings {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-2);
+}
+
+.png-card-greeting {
+	display: flex;
+	gap: var(--size-4-2);
+	align-items: flex-start;
+}
+
+.png-card-greeting textarea {
+	flex: 1;
+}
+
+.png-card-add-greeting {
+	align-self: flex-start;
+}
