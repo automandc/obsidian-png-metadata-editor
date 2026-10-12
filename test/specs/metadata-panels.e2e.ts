@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { before, beforeEach, describe, it } from 'mocha';
 import { obsidianPage } from 'wdio-obsidian-service';
+import { waitForSave } from './helpers';
 import { parsePng } from '../../src/png/chunks';
 import { findExif } from '../../src/png/exif';
 import { readTextEntries } from '../../src/png/text';
@@ -83,7 +84,7 @@ describe('Standard metadata panels', function () {
 		await added.$('.png-metadata-keyword').setValue('Comment');
 		await added.$('.png-metadata-value').setValue('Added in Obsidian');
 		await $('.png-metadata-save').click();
-		await expect($('.png-metadata-save')).toBeDisabled();
+		await waitForSave();
 
 		const after = parsePng(new Uint8Array(readFileSync(path)));
 		const types = (chunks: typeof before) => chunks.map((c) => c.type).filter((t) => t !== 'tEXt');

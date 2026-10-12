@@ -248,7 +248,9 @@ export class PngMetadataView extends FileView {
 	}
 
 	private renderInfo(el: HTMLElement, file: TFile) {
-		el.createEl('h3', { text: file.name });
+		// Character cards are named after the character, so the extension is noise there.
+		const showCardTitle = this.mode === 'card' && hasCard(this.entries);
+		el.createEl('h3', { cls: 'png-metadata-title', text: showCardTitle ? file.basename : file.name });
 		const rows: [string, string][] = [['File size', formatBytes(this.fileSize)]];
 		if (this.header) {
 			const { width, height, bitDepth, colorType, interlaced } = this.header;
@@ -390,6 +392,7 @@ export class PngMetadataView extends FileView {
 		const file = this.file;
 		if (!file || !this.dirty || this.invalidCount() > 0) return;
 		this.saving = true;
+		this.contentEl.addClass('is-saving');
 		this.updateControls();
 		try {
 			const original = await this.app.vault.readBinary(file);
@@ -406,6 +409,7 @@ export class PngMetadataView extends FileView {
 			return;
 		} finally {
 			this.saving = false;
+			this.contentEl.removeClass('is-saving');
 		}
 		await this.loadFromDisk(file, true);
 	}

@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { before, beforeEach, describe, it } from 'mocha';
 import { obsidianPage } from 'wdio-obsidian-service';
+import { waitForSave } from './helpers';
 import { parsePng } from '../../src/png/chunks';
 import { readTextEntries } from '../../src/png/text';
 
@@ -96,7 +97,7 @@ describe('PNG metadata view', function () {
 		await title.$('.png-metadata-value').setValue('Edited in Obsidian');
 		await expect($('.png-metadata-status')).toHaveText('Unsaved changes');
 		await $('.png-metadata-save').click();
-		await expect($('.png-metadata-save')).toBeDisabled();
+		await waitForSave();
 
 		const entries = readVaultPng('images/text-chunks.png');
 		expect(entries.find((e) => e.keyword === 'Title')?.text).toEqual('Edited in Obsidian');
@@ -118,7 +119,7 @@ describe('PNG metadata view', function () {
 		await added.$('.png-metadata-keyword').setValue('Author');
 		await added.$('.png-metadata-value').setValue('Test author');
 		await $('.png-metadata-save').click();
-		await expect($('.png-metadata-save')).toBeDisabled();
+		await waitForSave();
 
 		const keywords = readVaultPng('images/text-chunks.png').map((e) => e.keyword);
 		expect([...keywords].sort()).toEqual(['Author', 'Compressed', 'Description', 'Title']);
